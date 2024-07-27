@@ -1,1 +1,1 @@
-![Скриншот1](https://github.com/KIvanX/TanksPVP/images/screenshot.png)
+![Скриншот](https://github.com/KIvanX/TanksPVP/blob/main/images/screenshot.png)
