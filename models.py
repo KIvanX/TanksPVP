@@ -2,6 +2,8 @@ import random
 import time
 import pygame
 
+from utils import on_map, get_free_position
+
 delta = [(0, -1), (-1, 0), (0, 1), (1, 0)]
 ways = {pygame.K_UP: (0, -1, 0), pygame.K_DOWN: (0, 1, 2), pygame.K_LEFT: (-1, 0, 1), pygame.K_RIGHT: (1, 0, 3),
         pygame.K_w: (0, -1, 0), pygame.K_s: (0, 1, 2), pygame.K_a: (-1, 0, 1), pygame.K_d: (1, 0, 3)}
@@ -14,20 +16,22 @@ star_surface = pygame.transform.scale(pygame.image.load('images/star.png'), (10,
 
 
 class Tank:
-    def __init__(self, x, y, w, h, team):
+    def __init__(self, x, y, w, h, team, my=False, auto=True):
         self.x, self.y = x, y
         self.w, self.h = w, h
         self.look = 0
+        self.my = my
         self.team = team
+        self.auto = auto
         self.last_attack, self.last_think = 0, 0
         self.stars = 0
         self.hp = 10
         self.p = (-1, 0)
         self.font = pygame.font.Font(pygame.font.match_font('arial'), 18)
-        self.surface = main_tank_surface if team == 0 else enemy_tank_surface
+        self.to_x, self.to_y = 0, 0
 
     def move(self, _tanks, _barriers, _missiles):
-        if self.team == 0:
+        if self.my:
             keys = pygame.key.get_pressed()
             for _key in ways:
                 if keys[_key]:
@@ -50,18 +54,26 @@ class Tank:
                     if _flag:
                         self.x, self.y = _x, _y
                         return 0
-        else:
+        elif self.auto:
             self.think(_tanks, _barriers, _missiles)
+        else:
+            ln = ((self.to_x - self.x) ** 2 + (self.to_y - self.y) ** 2) ** 0.5
+            if self.to_x and 1 < ln < 100:
+                self.x += (self.to_x - self.x) / ln
+                self.y += (self.to_y - self.y) / ln
+            elif ln >= 100:
+                self.x, self.y = self.to_x, self.to_y
 
     def draw(self, _screen):
-        surface = pygame.transform.rotate(self.surface, self.look * 90)
+        raw_surface = main_tank_surface if self.my else enemy_tank_surface
+        surface = pygame.transform.rotate(raw_surface, self.look * 90)
         rect = surface.get_rect(center=(0, 0))
         _screen.blit(surface, (self.x + rect.x, self.y + rect.y))
 
         text_surface = self.font.render(str(self.hp), True, (250, 250, 250))
         _screen.blit(text_surface, (self.x - len(str(self.hp)) * 5, self.y - 30))
 
-        if self.team == 0:
+        if not self.auto:
             for i in range(self.stars):
                 _screen.blit(star_surface, (self.x - self.stars * 5 + i * 10, self.y - 45))
 
@@ -70,7 +82,7 @@ class Tank:
             return 0
 
         x, y = self.x + delta[self.look][0] * 15, self.y + delta[self.look][1] * 15
-        _missiles.append(Missile(x, y, self.w, self.h, self.look, 2, 3, self))
+        _missiles.append(Missile(x, y, self.w, self.h, self.look, 5, 3, self))
         self.last_attack = time.time()
 
     def damage(self, _damage, _tanks, _barriers):
@@ -78,14 +90,15 @@ class Tank:
 
         if self.hp <= 0:
             _tanks.remove(self)
-            if self.team != 0 and len(_tanks) == 1:
-                for _ in range(_tanks[0].stars + 1):
-                    add_new_enemy(_tanks, _barriers, self.team, self.w, self.h)
+            if self.auto and len(_tanks) == 1:
+                for _ in range(_tanks[0].stars // 3 + 1):
+                    _x, _y = get_free_position(_tanks, _barriers, self.w, self.h)
+                    _tanks.append(Tank(_x, _y, self.w, self.h, self.team))
             return True
         return False
 
     def think(self, _tanks, _barriers, _missiles):
-        enemy = [_tank for _tank in _tanks if _tank.team != self.team]
+        enemy = [_tank for _tank in _tanks if self.team != _tank.team]
         if not enemy:
             return 0
 
@@ -197,23 +210,3 @@ class Missile:
 
         if not on_map(self.x, self.y, self.w, self.h):
             _missiles.remove(self)
-
-
-def on_map(_x, _y, n, m):
-    return 0 <= _x < n and 0 <= _y < m
-
-
-def add_new_enemy(_tanks, _barriers, team, _w, _h):
-    flag = False
-    while not flag:
-        flag = True
-        _x, _y = random.randint(0, _w // 30 - 1) * 30, random.randint(0, _h // 30 - 1) * 30
-        for _barrier in _barriers:
-            if _barrier.x <= _x <= _barrier.x + 30 and _barrier.y <= _y <= _barrier.y + 30:
-                flag = False
-
-        if abs(_tanks[0].x - _x) + abs(_tanks[0].y - _y) < 300:
-            flag = False
-
-        if flag:
-            _tanks.append(Tank(_x + 15, _y + 15, _w, _h, team))
