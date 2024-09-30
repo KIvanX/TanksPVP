@@ -22,15 +22,12 @@ def get_free_position(_tanks, _barriers, _w, _h):
             return _x + 15, _y + 15
 
 
-def generate_map(tanks, w, h, Barrier):
+def generate_map(w, h, Barrier):
     barriers = []
     while len(barriers) < random.randint(200, 500):
         x = random.randint(0, w // 30 - 1) * 30
         y = random.randint(0, h // 30 - 1) * 30
         flag = True
-        for tank in tanks:
-            if tank.x - 45 < x < tank.x + 15 and tank.y - 45 < y < tank.y + 45:
-                flag = False
         nei = 0
         for barrier in barriers:
             if barrier.x == x and barrier.y == y:

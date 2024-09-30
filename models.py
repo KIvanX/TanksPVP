@@ -16,21 +16,23 @@ star_surface = pygame.transform.scale(pygame.image.load('images/star.png'), (10,
 
 
 class Tank:
-    def __init__(self, x, y, w, h, team, my=False, auto=True):
+    def __init__(self, x, y, w, h, p_id, my=False, auto=False):
         self.x, self.y = x, y
         self.w, self.h = w, h
         self.look = 0
         self.my = my
-        self.team = team
         self.auto = auto
+        self.p_id = p_id
         self.last_attack, self.last_think = 0, 0
         self.stars = 0
         self.hp = 10
         self.p = (-1, 0)
         self.font = pygame.font.Font(pygame.font.match_font('arial'), 18)
-        self.to_x, self.to_y = 0, 0
+        self.dx, self.dy = 0, 0
+        self.to_x, self.to_y = x, y
 
     def move(self, _tanks, _barriers, _missiles):
+        _x, _y = 0, 0
         if self.my:
             keys = pygame.key.get_pressed()
             for _key in ways:
@@ -38,31 +40,37 @@ class Tank:
                     _x = self.x + ways[_key][0]
                     _y = self.y + ways[_key][1]
                     self.look = ways[_key][2]
-
-                    _flag = True
-                    for _tank in _tanks:
-                        if _tank != self and _tank.x - 15 <= _x <= _tank.x + 15 and _tank.y - 15 <= _y <= _tank.y + 15:
-                            _flag = False
-
-                    for _barrier in _barriers:
-                        if _barrier.x - 10 <= _x <= _barrier.x + 40 and _barrier.y - 10 <= _y <= _barrier.y + 40:
-                            _flag = False
-
-                    if not (15 < _x < self.w - 15 and 15 < _y < self.h - 15):
-                        _flag = False
-
-                    if _flag:
-                        self.x, self.y = _x, _y
-                        return 0
         elif self.auto:
-            self.think(_tanks, _barriers, _missiles)
+            return self.think(_tanks, _barriers, _missiles)
         else:
-            ln = ((self.to_x - self.x) ** 2 + (self.to_y - self.y) ** 2) ** 0.5
-            if self.to_x and 1 < ln < 100:
-                self.x += (self.to_x - self.x) / ln
-                self.y += (self.to_y - self.y) / ln
-            elif ln >= 100:
-                self.x, self.y = self.to_x, self.to_y
+            _x = self.x + self.dx
+            _y = self.y + self.dy
+            if self.dx or self.dy:
+                self.look = (3 if self.dx > 0 else 1) if self.dx else (2 if self.dy > 0 else 0)
+
+        _flag = True
+        for _tank in _tanks:
+            if _tank != self and _tank.x - 15 <= _x <= _tank.x + 15 and _tank.y - 15 <= _y <= _tank.y + 15:
+                _flag = False
+
+        for _barrier in _barriers:
+            if _barrier.x - 10 <= _x <= _barrier.x + 40 and _barrier.y - 10 <= _y <= _barrier.y + 40:
+                _flag = False
+
+            if not (15 < _x < self.w - 15 and 15 < _y < self.h - 15):
+                _flag = False
+
+        if _flag:
+            self.x, self.y = _x, _y
+            return 0
+
+    def move_to(self):
+        ln = ((self.to_x - self.x) ** 2 + (self.to_y - self.y) ** 2) ** 0.5
+        if 3 < ln < 100:
+            self.x += (self.to_x - self.x) // 3
+            self.y += (self.to_y - self.y) // 3
+        elif not 3 < ln < 100:
+            self.x, self.y = self.to_x, self.to_y
 
     def draw(self, _screen):
         raw_surface = main_tank_surface if self.my else enemy_tank_surface
@@ -78,12 +86,16 @@ class Tank:
                 _screen.blit(star_surface, (self.x - self.stars * 5 + i * 10, self.y - 45))
 
     def attack(self, _missiles):
+        if self.auto and random.random() < 0.5:
+            self.last_attack = time.time()
+
         if time.time() - self.last_attack < 1:
-            return 0
+            return False
 
         x, y = self.x + delta[self.look][0] * 15, self.y + delta[self.look][1] * 15
-        _missiles.append(Missile(x, y, self.w, self.h, self.look, 5, 3, self))
+        _missiles.append(Missile(x, y, self.w, self.h, self.look, random.randint(10**6, 10**12), 5, 3, self))
         self.last_attack = time.time()
+        return True
 
     def damage(self, _damage, _tanks, _barriers):
         self.hp -= _damage
@@ -93,12 +105,12 @@ class Tank:
             if self.auto and len(_tanks) == 1:
                 for _ in range(_tanks[0].stars // 3 + 1):
                     _x, _y = get_free_position(_tanks, _barriers, self.w, self.h)
-                    _tanks.append(Tank(_x, _y, self.w, self.h, self.team))
+                    _tanks.append(Tank(_x, _y, self.w, self.h, random.randint(10**6, 10**12)))
             return True
         return False
 
     def think(self, _tanks, _barriers, _missiles):
-        enemy = [_tank for _tank in _tanks if self.team != _tank.team]
+        enemy = [_tank for _tank in _tanks if not _tank.auto]
         if not enemy:
             return 0
 
@@ -147,7 +159,8 @@ class Tank:
 
         ds = [(di, dj) for di, dj in delta if on_map(i0 + di, j0 + dj, n, m)]
         di, dj = min(ds, key=lambda d: a[i0 + d[0]][j0 + d[1]])
-        di, dj = self.p if self.p in ds and a[i0 + self.p[0]][j0 + self.p[1]] == a[i0 + di][j0 + dj] else (di, dj)
+        is_leave = self.p in ds and a[i0 + self.p[0]][j0 + self.p[1]] == a[i0 + di][j0 + dj] and random.random() < 0.7
+        di, dj = self.p if is_leave else (di, dj)
         self.look = delta.index((dj, di))
 
         if b[i0 + di][j0 + dj] != 1 or (i0 + di, j0 + dj) == (i1, j1):
@@ -158,15 +171,16 @@ class Tank:
 
 
 class Barrier:
-    def __init__(self, _x, _y, _type):
-        self.x = _x
-        self.y = _y
+    def __init__(self, x, y, _type, b_id):
+        self.x = x
+        self.y = y
+        self.id = b_id
         self.type = _type
+        self.updated = 10
         self.hp = 3 if _type == 'brick' else 300
-        self.surface = bricks_surface if _type == 'brick' else metal_surface
 
     def draw(self, _screen):
-        _screen.blit(self.surface, (self.x, self.y))
+        _screen.blit(bricks_surface if self.type == 'brick' else metal_surface, (self.x, self.y))
         if self.hp < 3:
             _screen.blit(crack_surface, (self.x, self.y))
 
@@ -175,19 +189,20 @@ class Barrier:
             _screen.blit(_crack_surface, (self.x, self.y))
 
     def damage(self, _barriers):
+        self.updated = 10
         self.hp -= 1
-        if self.hp <= 0:
-            _barriers.remove(self)
 
 
 class Missile:
-    def __init__(self, x, y, w, h, way, speed, damage, parent: Tank):
+    def __init__(self, x, y, w, h, way, m_id, speed, damage, parent: Tank):
         self.x, self.y = x, y
         self.w, self.h = w, h
         self.way = way
+        self.id = m_id
         self.speed = speed
         self.damage = damage
         self.parent = parent
+        self.to_x, self.to_y = x, y
 
     def draw(self, _screen):
         pygame.draw.rect(_screen, (255, 255, 255), (self.x, self.y, 2, 2))
@@ -210,3 +225,11 @@ class Missile:
 
         if not on_map(self.x, self.y, self.w, self.h):
             _missiles.remove(self)
+
+    def move_to(self):
+        ln = ((self.to_x - self.x) ** 2 + (self.to_y - self.y) ** 2) ** 0.5
+        if self.to_x and 1 < ln < 5000:
+            self.x += (self.to_x - self.x) // 5
+            self.y += (self.to_y - self.y) // 5
+        elif self.to_x and not 1 < ln < 5000:
+            self.x, self.y = self.to_x, self.to_y
