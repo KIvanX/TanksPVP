@@ -85,8 +85,8 @@ class Tank:
             for i in range(self.stars):
                 _screen.blit(star_surface, (self.x - self.stars * 5 + i * 10, self.y - 45))
 
-    def attack(self, _missiles):
-        if self.auto and random.random() < 0.5:
+    def attack(self, _missiles, miss=0.0):
+        if random.random() < miss:
             self.last_attack = time.time()
 
         if time.time() - self.last_attack < 1:
@@ -164,7 +164,7 @@ class Tank:
         self.look = delta.index((dj, di))
 
         if b[i0 + di][j0 + dj] != 1 or (i0 + di, j0 + dj) == (i1, j1):
-            self.attack(_missiles)
+            self.attack(_missiles, miss=0.5)
             return 0
         self.x, self.y = self.x + dj, self.y + di
         self.p = (di, dj)
