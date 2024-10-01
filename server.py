@@ -62,7 +62,7 @@ def listening():
                 b.updated = 10
 
             p_id = random.randint(0, 10 ** 12)
-            free_cells = {(i % 30, i // 30) for i in range(600)}
+            free_cells = {(i % 30, i // 30) for i in range(600) if i % 30 not in [0, 30] and i // 30 not in [0, 20]}
             for _barrier in barriers:
                 free_cells.remove((_barrier.x // 30, _barrier.y // 30))
             x, y = random.choice(list(free_cells))
