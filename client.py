@@ -24,7 +24,7 @@ class Client:
         self.socket.sendto(json.dumps(s).encode(), (server, 8008))
 
     def listener(self):
-        time.sleep(0.2)
+        time.sleep(0.03)
         while True:
             data, address = self.socket.recvfrom(4096)
             message = json.loads(data.decode())
@@ -34,7 +34,8 @@ class Client:
                 for t in message['data']['tanks']:
                     tank = [tank for tank in self.tanks if tank.p_id == t['p_id']]
                     if not tank:
-                        self.tanks.append(Tank(t['x'], t['y'], self.w, self.h, t['p_id'], my=t['p_id'] == self.p_id))
+                        self.tanks.append(Tank(t['x'], t['y'], self.w, self.h, t['p_id'],
+                                               my=t['p_id'] == self.p_id, auto=t['auto']))
                         self.tanks[-1].look = t['look']
                     else:
                         tank[0].to_x = t['x']
@@ -46,8 +47,9 @@ class Client:
                 for b in message['data']['barriers']:
                     barrier = [barrier for barrier in self.barriers if barrier.id == b['id']]
                     if not barrier:
-                        self.barriers.append(Barrier(b['x'], b['y'], b['type'], b['id']))
-                        self.barriers[-1].hp = b['hp']
+                        if b['hp'] > 0:
+                            self.barriers.append(Barrier(b['x'], b['y'], b['type'], b['id']))
+                            self.barriers[-1].hp = b['hp']
                     else:
                         barrier[0].hp = b['hp']
                         barrier[0].type = b['type']

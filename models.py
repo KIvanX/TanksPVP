@@ -84,6 +84,9 @@ class Tank:
         if not self.auto:
             for i in range(self.stars):
                 _screen.blit(star_surface, (self.x - self.stars * 5 + i * 10, self.y - 45))
+        else:
+            text_surface = self.font.render('Bot', True, (250, 250, 250))
+            _screen.blit(text_surface, (self.x - 10, self.y - 45))
 
     def attack(self, _missiles, miss=0.0):
         if random.random() < miss:
@@ -146,7 +149,7 @@ class Tank:
                 break
 
             if on_map(i2, j2, n, m) and i2 == i1 and j2 == j1:
-                self.attack(_missiles)
+                self.attack(_missiles, miss=0.35)
                 return 0
 
         for k in range(5):
@@ -164,7 +167,7 @@ class Tank:
         self.look = delta.index((dj, di))
 
         if b[i0 + di][j0 + dj] != 1 or (i0 + di, j0 + dj) == (i1, j1):
-            self.attack(_missiles, miss=0.5)
+            self.attack(_missiles)
             return 0
         self.x, self.y = self.x + dj, self.y + di
         self.p = (di, dj)

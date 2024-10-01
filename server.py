@@ -29,10 +29,11 @@ def sending():
     global barriers
 
     while True:
+        t0 = time.time()
         for player in list(players.values()).copy():
             _message = {'type': 'update',
                         'data': {'tanks': [{'x': t.x, 'y': t.y, 'look': t.look, 'p_id': t.p_id,
-                                            'hp': t.hp, 'stars': t.stars} for t in tanks.copy()],
+                                            'hp': t.hp, 'stars': t.stars, 'auto': t.auto} for t in tanks.copy()],
                                  'barriers': [{'x': b.x, 'y': b.y, 'type': b.type, 'id': b.id,
                                                'hp': b.hp} for b in barriers if b.updated],
                                  'missiles': [{'x': m.x, 'y': m.y, 'way': m.way, 'id': m.id} for m in missiles]}}
@@ -40,9 +41,12 @@ def sending():
             server_socket.sendto(json.dumps(_message).encode(), player['address'])
         k = 0
         for b in barriers:
+            if b.hp <= 0 and not b.updated:
+                barriers.remove(b)
             if b.updated and k < 10:
                 k, b.updated = k + 1, 0 if b.updated < 2 else b.updated - 1
-        time.sleep(0.1)
+        print(time.time() - t0)
+        time.sleep(0.01)
 
 
 def listening():
@@ -62,9 +66,10 @@ def listening():
                 b.updated = 10
 
             p_id = random.randint(0, 10 ** 12)
-            free_cells = {(i % 30, i // 30) for i in range(600) if not(i % 30 in [0, 30] or i // 30 in [0, 20])}
+            free_cells = {(i % 30, i // 30) for i in range(600) if not (i % 30 in [0, 30] or i // 30 in [0, 20])}
             for _barrier in barriers:
-                free_cells.remove((_barrier.x // 30, _barrier.y // 30))
+                if (_barrier.x // 30, _barrier.y // 30) in free_cells:
+                    free_cells.remove((_barrier.x // 30, _barrier.y // 30))
             x, y = random.choice(list(free_cells))
             tanks.append(Tank(x * 30 + 15, y * 30 + 15, W, H, p_id))
             players[p_id] = {'address': client_address, 'tank': tanks[-1], 'last_update': time.time()}
