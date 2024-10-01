@@ -28,6 +28,7 @@ class Tank:
         self.hp = 10
         self.p = (-1, 0)
         self.font = pygame.font.Font(pygame.font.match_font('arial'), 18)
+        self.little_font = pygame.font.Font(pygame.font.match_font('arial'), 13)
         self.dx, self.dy = 0, 0
         self.to_x, self.to_y = x, y
 
@@ -85,8 +86,8 @@ class Tank:
             for i in range(self.stars):
                 _screen.blit(star_surface, (self.x - self.stars * 5 + i * 10, self.y - 45))
         else:
-            text_surface = self.font.render('Bot', True, (250, 250, 250))
-            _screen.blit(text_surface, (self.x - 10, self.y - 45))
+            text_surface = self.little_font.render('Bot', True, (250, 250, 250))
+            _screen.blit(text_surface, (self.x - 10, self.y - 40))
 
     def attack(self, _missiles, miss=0.0):
         if random.random() < miss:
@@ -105,10 +106,6 @@ class Tank:
 
         if self.hp <= 0:
             _tanks.remove(self)
-            if self.auto and len(_tanks) == 1:
-                for _ in range(_tanks[0].stars // 3 + 1):
-                    _x, _y = get_free_position(_tanks, _barriers, self.w, self.h)
-                    _tanks.append(Tank(_x, _y, self.w, self.h, random.randint(10**6, 10**12)))
             return True
         return False
 

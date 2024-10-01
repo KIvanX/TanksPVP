@@ -29,7 +29,6 @@ def sending():
     global barriers
 
     while True:
-        t0 = time.time()
         for player in list(players.values()).copy():
             _message = {'type': 'update',
                         'data': {'tanks': [{'x': t.x, 'y': t.y, 'look': t.look, 'p_id': t.p_id,
@@ -45,7 +44,6 @@ def sending():
                 barriers.remove(b)
             if b.updated and k < 10:
                 k, b.updated = k + 1, 0 if b.updated < 2 else b.updated - 1
-        print(time.time() - t0)
         time.sleep(0.01)
 
 
@@ -74,9 +72,8 @@ def listening():
             tanks.append(Tank(x * 30 + 15, y * 30 + 15, W, H, p_id))
             players[p_id] = {'address': client_address, 'tank': tanks[-1], 'last_update': time.time()}
             server_socket.sendto(json.dumps({'type': 'hello', 'data': p_id}).encode(), client_address)
-        elif message['type'] == 'update':
-            if message.get('p_id') not in players:
-                continue
+        elif message['type'] == 'update' and 'p_id' in message and players[message['p_id']]['tank'] in tanks:
+
             players[message['p_id']]['last_update'] = time.time()
             players[message['p_id']]['tank'].dx = message['data']['dx']
             players[message['p_id']]['tank'].dy = message['data']['dy']
@@ -92,7 +89,7 @@ def listening():
                 if _barrier:
                     _barrier[0].hp = 0
                     _barrier[0].updated = 10
-                if _tank:
+                if _tank and _tank[0].auto:
                     tanks.remove(_tank[0])
                 else:
                     tanks.append(Tank(x, y, W, H, random.randint(0, 10**12), auto=True))
