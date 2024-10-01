@@ -21,7 +21,7 @@ class Client:
 
     def send(self, s: dict):
         server, local = '62.217.177.130', 'localhost'
-        self.socket.sendto(json.dumps(s).encode(), (local, 8008))
+        self.socket.sendto(json.dumps(s).encode(), (server, 8008))
 
     def listener(self):
         time.sleep(0.03)

@@ -80,12 +80,13 @@ def listening():
         if not players.get(message.get('p_id')):
             continue
 
-        if message['type'] == 'update' and players[message['p_id']]['tank'] in tanks:
+        if message['type'] == 'update':
             players[message['p_id']]['last_update'] = time.time()
-            players[message['p_id']]['tank'].dx = message['data']['dx']
-            players[message['p_id']]['tank'].dy = message['data']['dy']
-            if message['data'].get('attack'):
-                players[message['p_id']]['tank'].attack(missiles)
+            if players[message['p_id']]['tank'] in tanks:
+                players[message['p_id']]['tank'].dx = message['data']['dx']
+                players[message['p_id']]['tank'].dy = message['data']['dy']
+                if message['data'].get('attack'):
+                    players[message['p_id']]['tank'].attack(missiles)
         elif message['type'] == 'goodbye':
             players[message['p_id']]['last_update'] = time.time() - 5
         elif message['type'] == 'create':
