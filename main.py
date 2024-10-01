@@ -38,6 +38,9 @@ while game:
             if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                 client.attack_request = True
 
+            if event.key == pygame.K_r:
+                client.restart()
+
         if event.type == pygame.MOUSEBUTTONUP and event.button == 3:
             x, y = pygame.mouse.get_pos()
             client.add_tank(x // 30 * 30 + 15, y // 30 * 30 + 15)

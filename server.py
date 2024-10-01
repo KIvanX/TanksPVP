@@ -60,20 +60,27 @@ def listening():
             if not players:
                 create_world()
 
-            for b in barriers:
-                b.updated = 10
+            if 'p_id' not in message:
+                for b in barriers:
+                    b.updated = 10
+            elif message['p_id'] in players:
+                players[message['p_id']]['last_update'] -= 5
 
             p_id = random.randint(0, 10 ** 12)
-            free_cells = {(i % 30, i // 30) for i in range(600) if not (i % 30 in [0, 30] or i // 30 in [0, 20])}
+            free_cells = {(i % 30, i // 30) for i in range(600) if not (i % 30 in [0, 29] or i // 30 in [0, 19])}
             for _barrier in barriers:
                 if (_barrier.x // 30, _barrier.y // 30) in free_cells:
                     free_cells.remove((_barrier.x // 30, _barrier.y // 30))
             x, y = random.choice(list(free_cells))
+
             tanks.append(Tank(x * 30 + 15, y * 30 + 15, W, H, p_id))
             players[p_id] = {'address': client_address, 'tank': tanks[-1], 'last_update': time.time()}
             server_socket.sendto(json.dumps({'type': 'hello', 'data': p_id}).encode(), client_address)
-        elif message['type'] == 'update' and 'p_id' in message and players[message['p_id']]['tank'] in tanks:
 
+        if not players.get(message.get('p_id')):
+            continue
+
+        if message['type'] == 'update' and players[message['p_id']]['tank'] in tanks:
             players[message['p_id']]['last_update'] = time.time()
             players[message['p_id']]['tank'].dx = message['data']['dx']
             players[message['p_id']]['tank'].dy = message['data']['dy']

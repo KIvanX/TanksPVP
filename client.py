@@ -67,8 +67,9 @@ class Client:
                         missil[0].to_y = m['y']
 
             if message['type'] == 'hello':
+                if not self.p_id:
+                    threading.Thread(target=self.sender, daemon=False).start()
                 self.p_id = message['data']
-                threading.Thread(target=self.sender, daemon=False).start()
 
     def sender(self):
         while True:
@@ -84,14 +85,14 @@ class Client:
                 if keys[_key]:
                     x = ways[_key][0]
                     y = ways[_key][1]
-            self.send({'type': 'update', 'p_id': self.p_id,
-                       'data': {'dx': x, 'dy': y, 'attack': self.attack_request}})
+            self.send({'type': 'update', 'p_id': self.p_id, 'data': {'dx': x, 'dy': y, 'attack': self.attack_request}})
             self.attack_request = False
 
     def add_tank(self, x, y):
-        self.send({'type': 'create', 'p_id': self.p_id,
-                   'data': {'x': x, 'y': y, 'type': 'tank'}})
+        self.send({'type': 'create', 'p_id': self.p_id, 'data': {'x': x, 'y': y, 'type': 'tank'}})
 
     def add_barrier(self, x, y):
-        self.send({'type': 'create', 'p_id': self.p_id,
-                   'data': {'x': x, 'y': y, 'type': 'barrier'}})
+        self.send({'type': 'create', 'p_id': self.p_id, 'data': {'x': x, 'y': y, 'type': 'barrier'}})
+
+    def restart(self):
+        self.send({'type': 'hello', 'p_id': self.p_id})
