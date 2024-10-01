@@ -194,7 +194,7 @@ class Barrier:
 
 
 class Missile:
-    def __init__(self, x, y, w, h, way, m_id, speed, damage, parent: Tank):
+    def __init__(self, x, y, w, h, way, m_id, speed, damage, parent):
         self.x, self.y = x, y
         self.w, self.h = w, h
         self.way = way

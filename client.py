@@ -16,15 +16,15 @@ class Client:
         self.p_id = None
         self.attack_request = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
         threading.Thread(target=self.listener, daemon=True).start()
         self.send({'type': 'hello'})
 
-    def send(self, s: str):
+    def send(self, s: dict):
         server, local = '62.217.177.130', 'localhost'
         self.socket.sendto(json.dumps(s).encode(), (server, 8008))
 
     def listener(self):
+        time.sleep(0.2)
         while True:
             data, address = self.socket.recvfrom(4096)
             message = json.loads(data.decode())
@@ -59,7 +59,7 @@ class Client:
                 for m in message['data']['missiles']:
                     missil = [missil for missil in self.missiles if missil.id == m['id']]
                     if not missil:
-                        self.missiles.append(Missile(m['x'], m['y'], self.w, self.h, m['way'], m['id'], 0, 0, 0))
+                        self.missiles.append(Missile(m['x'], m['y'], self.w, self.h, m['way'], m['id'], 0, 0, None))
                     else:
                         missil[0].to_x = m['x']
                         missil[0].to_y = m['y']
